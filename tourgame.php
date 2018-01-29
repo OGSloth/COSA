@@ -19,7 +19,7 @@ if(isset($_POST['wys'])){
     $valid = true;
     $my_id = $_SESSION['Id'];
     if($db_respond = @$connection->query($sql_log)){
-       $n_row = $db_respond->num_rows;
+        $n_row = $db_respond->num_rows;
         if($n_row > 0  && !(is_numeric($log)) && $log != $my_id ) {
             if($_POST['formGame'] == 'None'){
                 $_SESSION['er_sel'] = "Wybierz Otwarcie!";
@@ -38,6 +38,10 @@ if(isset($_POST['wys'])){
         $valid = false;
         echo '<center><b>Blad polaczenia z baza danych</b></center>';
     }
+    if($_POST['formTour'] == 'None'){
+        $valid = false;
+        $_SESSION['er_tour'] = "Wybierz turniej!";
+    }
     if($valid){
         $whiteid = $log;
         $blackid = $my_id;
@@ -55,6 +59,18 @@ if(isset($_POST['wys'])){
         echo '</br>';
         if($db_respond = @$connection->query($sql_game)){
             echo '<center><b>Rozgrywka zostala pomyslnie dodana!</b></center>';
+            $last_insert_id = $connection->insert_id;
+            $tourn = $_POST['formTour'];
+            $sql_tur = "INSERT INTO Tournament_Results VALUES ($tourn, $last_insert_id)";
+            @$connection->query($sql_tur);
+            $check_player = "SELECT * FROM Tournament_Players WHERE Tournament_Id = $tourn AND Player_Id = '$log'";
+            if($db_respond_cp = @$connection->query($check_player)){
+                $rownum = $db_respond_cp->num_rows;
+                if(!$rownum){
+                    $in_player = "INSERT INTO Tournament_Players VALUES ($tourn, '$log')";
+                    @$connection->query($in_player);
+                }
+            }
         }
         if($db_respond = @$connection->query($check_white)){
             $rownum = $db_respond->num_rows;
@@ -129,15 +145,15 @@ if(isset($_POST['wys'])){
     echo'
 </select>
 </p>';
-?>
-</br>
-    <?php
-        if(isset($_SESSION['er_sel'])){
-            echo $_SESSION['er_sel'].'</br>';
-            unset($_SESSION['er_sel']);
-        }
     ?>
-<p><center>Wybierz swój kolor bierek:</center></p>
+    </br>
+    <?php
+    if(isset($_SESSION['er_sel'])){
+        echo $_SESSION['er_sel'].'</br>';
+        unset($_SESSION['er_sel']);
+    }
+    ?>
+    <p><center>Wybierz swój kolor bierek:</center></p>
     <select name = "color">
         <option value = "white">Biale</option>
         <option value = "black">Czarne</option>
@@ -155,7 +171,33 @@ if(isset($_POST['wys'])){
         echo $_SESSION['er_log'].'</br>';
         unset($_SESSION['er_log']);
     }
+    echo '<p><center><b>Wybierz Turniej</center></b>';
+    echo '<br>';
+    $tour_id = $_SESSION['Id'];
+    $tour_sql = "Select * From Tournament_Players WHERE Player_Id = '$tour_id'";
+    if($db_respond = @mysqli_query($dbc,$tour_sql)) {
+        echo '<center><select name="formTour"></center>';
+        echo '<option value = "None" > Wybierz</option >';
+        while ($row = mysqli_fetch_array($db_respond)) {
+            $TourId = $row['Tournament_Id'];
+            $TourName;
+            if($db_respond2 = @$connection->query("Select * From Tournament WHERE Id = $TourId")){
+                while($newrow = mysqli_fetch_array($db_respond2)){
+                    $TourName = $newrow['Tournament_Name'];
+                }
+            }
+            echo '<option value = '.$TourId.' >'.$TourName.'</option >';
+        }
+    }
+    echo'
+</select>
+</p>';
+    if(isset($_SESSION['er_tour'])){
+        echo '</br>'.$_SESSION['er_tour'].'</br>';
+        unset($_SESSION['er_tour']);
+    }
     ?>
+    </br>
     <input type="submit" value="Wyślij rozgrywkę!" name ="wys">
 </form>
 
